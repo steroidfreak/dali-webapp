@@ -22,9 +22,9 @@ const io     = new Server(server, {
 // ─────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────
-const PORT         = process.env.PORT || 3000;
+const PORT         = Number(process.env.PORT) || 3000;
 const MQTT_BROKER  = process.env.MQTT_BROKER || 'mqtt://178.128.210.185:1883';
-const NUM_LIGHTS   = 10;
+const NUM_LIGHTS   = Number(process.env.NUM_LIGHTS) || 2;
 
 // ─────────────────────────────────────────────
 // STATE CACHE
@@ -168,6 +168,10 @@ app.post('/api/set', (req, res) => {
 // SERVE STATIC FILES (React dashboard)
 // ─────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/api/config', (req, res) => {
+    res.json({ numLights: NUM_LIGHTS });
+});
 
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

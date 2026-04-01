@@ -153,11 +153,11 @@
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
-const NUM_LIGHTS = 10;
+const DEFAULT_NUM_LIGHTS = 2;
 
-function initState() {
+function initState(numLights) {
   const s = {};
-  for (let i = 0; i < NUM_LIGHTS; i++) {
+  for (let i = 0; i < numLights; i++) {
     s[i] = { addr: i, online: false, level: 0, lampOn: false,
               lampFail: false, gearFail: false, addrStatus: 0, lastSeen: null };
   }
@@ -267,10 +267,26 @@ function LightCard({ light, onSetLevel }) {
 }
 
 function App() {
-  const [lights, setLights]     = useState(initState());
+  const [numLights, setNumLights] = useState(DEFAULT_NUM_LIGHTS);
+  const [lights, setLights]     = useState(initState(DEFAULT_NUM_LIGHTS));
   const [connected, setConnected] = useState(false);
   const [toast, setToast]       = useState(null);
   const socketRef = useRef(null);
+  const numLightsRef = useRef(DEFAULT_NUM_LIGHTS);
+
+  useEffect(() => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(config => {
+        const count = Number(config.numLights) || DEFAULT_NUM_LIGHTS;
+        numLightsRef.current = count;
+        setNumLights(count);
+        setLights(initState(count));
+      })
+      .catch(() => {
+        setLights(initState(DEFAULT_NUM_LIGHTS));
+      });
+  }, []);
 
   useEffect(() => {
     // Connect to Socket.IO server (same origin)
@@ -288,7 +304,7 @@ function App() {
     });
 
     socket.on('fullState', (allLights) => {
-      const next = { ...initState() };
+      const next = { ...initState(numLightsRef.current) };
       allLights.forEach(l => { next[l.addr] = l; });
       setLights(next);
     });
@@ -350,7 +366,7 @@ function App() {
           <div className="summary-lbl">Faults</div>
         </div>
         <div className="summary-item">
-          <div className="summary-num" style={{color:'var(--muted)'}}>{NUM_LIGHTS}</div>
+          <div className="summary-num" style={{color:'var(--muted)'}}>{numLights}</div>
           <div className="summary-lbl">Total</div>
         </div>
       </div>
