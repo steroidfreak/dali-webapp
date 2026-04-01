@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DALI Light Control</title>
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/socket.io-client@4/dist/socket.io.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #0f1117;
+    --bg2:      #1a1d27;
+    --bg3:      #22263a;
+    --border:   #2e3350;
+    --text:     #e8eaf0;
+    --muted:    #7b82a0;
+    --accent:   #4f7cff;
+    --green:    #22c55e;
+    --red:      #ef4444;
+    --amber:    #f59e0b;
+    --radius:   12px;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+  #root { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .conn-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 6px;
+  }
+  .conn-label { font-size: 12px; color: var(--muted); display: flex; align-items: center; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .card.fault { border-color: var(--red); }
+  .card.offline { opacity: 0.5; }
+
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .card-title { font-weight: 600; font-size: 15px; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .badge {
+    font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 99px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge-green  { background: #14532d; color: #86efac; }
+  .badge-red    { background: #450a0a; color: #fca5a5; }
+  .badge-amber  { background: #451a03; color: #fcd34d; }
+  .badge-gray   { background: #1e2030; color: var(--muted); }
+  .badge-blue   { background: #1e3a5f; color: #93c5fd; }
+
+  .level-display {
+    text-align: center; margin: 12px 0;
+  }
+  .level-number {
+    font-size: 42px; font-weight: 700; line-height: 1;
+    color: var(--accent);
+  }
+  .level-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .light-icon {
+    width: 48px; height: 48px; margin: 0 auto 8px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    transition: background 0.3s;
+  }
+  .light-icon.on  { background: #fef08a22; box-shadow: 0 0 20px #fef08a44; }
+  .light-icon.off { background: var(--bg3); }
+
+  .slider-row { display: flex; align-items: center; gap: 10px; margin: 12px 0 8px; }
+  .slider-row input[type=range] {
+    flex: 1; -webkit-appearance: none; height: 6px;
+    border-radius: 3px; background: var(--bg3); outline: none;
+    cursor: pointer;
+  }
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+  }
+  .slider-val { min-width: 32px; text-align: right; font-size: 13px; color: var(--muted); }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  .btn {
+    flex: 1; padding: 8px 0; border: none; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-off     { background: var(--bg3); color: var(--muted); }
+  .btn-max     { background: #14532d; color: #86efac; }
+
+  .status-row {
+    display: flex; gap: 8px; margin-top: 12px;
+    padding-top: 12px; border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .status-item { font-size: 11px; color: var(--muted); }
+  .status-item span { color: var(--text); }
+
+  .last-seen { font-size: 10px; color: var(--muted); margin-top: 8px; }
+
+  .summary-bar {
+    display: flex; gap: 20px; margin-bottom: 20px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 20px;
+  }
+  .summary-item { text-align: center; }
+  .summary-num { font-size: 24px; font-weight: 700; }
+  .summary-lbl { font-size: 11px; color: var(--muted); }
+
+  .toast {
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 16px; font-size: 13px;
+    animation: fadeIn 0.2s ease;
+    z-index: 99;
+  }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const NUM_LIGHTS = 10;
+
+function initState() {
+  const s = {};
+  for (let i = 0; i < NUM_LIGHTS; i++) {
+    s[i] = { addr: i, online: false, level: 0, lampOn: false,
+              lampFail: false, gearFail: false, addrStatus: 0, lastSeen: null };
+  }
+  return s;
+}
+
+function levelToPercent(raw) {
+  // DALI level 0-254 → 0-100%
+  return raw === 0 ? 0 : Math.round((raw / 254) * 100);
+}
+
+function percentToLevel(pct) {
+  return Math.round((pct / 100) * 254);
+}
+
+function timeAgo(iso) {
+  if (!iso) return 'never';
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  return `${Math.floor(diff/3600)}h ago`;
+}
+
+function LightCard({ light, onSetLevel }) {
+  const [slider, setSlider] = useState(levelToPercent(light.level));
+  const hasFault = light.lampFail || light.gearFail;
+
+  useEffect(() => {
+    setSlider(levelToPercent(light.level));
+  }, [light.level]);
+
+  const send = (action, level) => {
+    onSetLevel({ addr: light.addr, action, level });
+  };
+
+  return (
+    <div className={`card ${hasFault ? 'fault' : ''} ${!light.online ? 'offline' : ''}`}>
+      <div className="card-header">
+        <div className="card-title">Light {light.addr}</div>
+        <div className="badges">
+          {light.online
+            ? <span className="badge badge-green">online</span>
+            : <span className="badge badge-gray">offline</span>}
+          {light.lampOn && <span className="badge badge-blue">on</span>}
+          {light.lampFail && <span className="badge badge-red">lamp fail</span>}
+          {light.gearFail && <span className="badge badge-amber">gear fail</span>}
+        </div>
+      </div>
+
+      <div className="light-icon" style={{margin:'0 auto 8px'}}>
+        <div className="light-icon" style={{
+          background: light.lampOn
+            ? `rgba(254,240,138,${0.1 + (slider/100)*0.5})`
+            : 'var(--bg3)',
+          width:48, height:48
+        }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="5"
+              fill={light.lampOn ? `rgba(254,240,138,${0.4+(slider/100)*0.6})` : '#2e3350'}/>
+            {light.lampOn && <>
+              <line x1="12" y1="2" x2="12" y2="5" stroke="#fef08a" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="12" y1="19" x2="12" y2="22" stroke="#fef08a" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="2" y1="12" x2="5" y2="12" stroke="#fef08a" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="19" y1="12" x2="22" y2="12" stroke="#fef08a" strokeWidth="2" strokeLinecap="round"/>
+            </>}
+          </svg>
+        </div>
+      </div>
+
+      <div className="level-display">
+        <div className="level-number">{slider}%</div>
+        <div className="level-label">brightness · raw {light.level}</div>
+      </div>
+
+      <div className="slider-row">
+        <input type="range" min="0" max="100" value={slider}
+          onChange={e => setSlider(Number(e.target.value))}
+          disabled={!light.online}/>
+        <span className="slider-val">{slider}%</span>
+      </div>
+
+      <div className="btn-row">
+        <button className="btn btn-off"
+          disabled={!light.online}
+          onClick={() => send(0x00, 0)}>
+          Off
+        </button>
+        <button className="btn btn-primary"
+          disabled={!light.online}
+          onClick={() => send(0xFF, percentToLevel(slider))}>
+          Set
+        </button>
+        <button className="btn btn-max"
+          disabled={!light.online}
+          onClick={() => send(0x05, 0)}>
+          Max
+        </button>
+      </div>
+
+      <div className="status-row">
+        <div className="status-item">Addr status: <span>{light.addrStatus}</span></div>
+        <div className="status-item">Level raw: <span>{light.level}</span></div>
+      </div>
+      <div className="last-seen">Updated {timeAgo(light.lastSeen)}</div>
+    </div>
+  );
+}
+
+function App() {
+  const [lights, setLights]     = useState(initState());
+  const [connected, setConnected] = useState(false);
+  const [toast, setToast]       = useState(null);
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    // Connect to Socket.IO server (same origin)
+    const socket = io(window.location.origin, { transports: ['websocket'] });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      setConnected(true);
+      showToast('Connected to server');
+    });
+
+    socket.on('disconnect', () => {
+      setConnected(false);
+      showToast('Disconnected — reconnecting...');
+    });
+
+    socket.on('fullState', (allLights) => {
+      const next = { ...initState() };
+      allLights.forEach(l => { next[l.addr] = l; });
+      setLights(next);
+    });
+
+    socket.on('lightUpdate', (light) => {
+      setLights(prev => ({ ...prev, [light.addr]: light }));
+    });
+
+    socket.on('cmdSent', (data) => {
+      showToast(`Command sent to light ${data.addr}`);
+    });
+
+    socket.on('cmdError', (data) => {
+      showToast(`Error: ${data.message}`);
+    });
+
+    return () => socket.disconnect();
+  }, []);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  const handleSetLevel = useCallback((data) => {
+    if (socketRef.current) {
+      socketRef.current.emit('setLevel', data);
+    }
+  }, []);
+
+  const onlineCount  = Object.values(lights).filter(l => l.online).length;
+  const onCount      = Object.values(lights).filter(l => l.lampOn).length;
+  const faultCount   = Object.values(lights).filter(l => l.lampFail || l.gearFail).length;
+
+  return (
+    <div>
+      <div className="header">
+        <h1>DALI Light Control</h1>
+        <div className="conn-label">
+          <span className="conn-dot"
+            style={{ background: connected ? 'var(--green)' : 'var(--red)' }}/>
+          {connected ? 'Connected' : 'Disconnected'}
+        </div>
+      </div>
+
+      <div className="summary-bar">
+        <div className="summary-item">
+          <div className="summary-num" style={{color:'var(--green)'}}>{onlineCount}</div>
+          <div className="summary-lbl">Online</div>
+        </div>
+        <div className="summary-item">
+          <div className="summary-num" style={{color:'var(--accent)'}}>{onCount}</div>
+          <div className="summary-lbl">Lights on</div>
+        </div>
+        <div className="summary-item">
+          <div className="summary-num" style={{color: faultCount > 0 ? 'var(--red)' : 'var(--muted)'}}>
+            {faultCount}
+          </div>
+          <div className="summary-lbl">Faults</div>
+        </div>
+        <div className="summary-item">
+          <div className="summary-num" style={{color:'var(--muted)'}}>{NUM_LIGHTS}</div>
+          <div className="summary-lbl">Total</div>
+        </div>
+      </div>
+
+      <div className="grid">
+        {Object.values(lights).map(light => (
+          <LightCard key={light.addr} light={light} onSetLevel={handleSetLevel}/>
+        ))}
+      </div>
+
+      {toast && <div className="toast">{toast}</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

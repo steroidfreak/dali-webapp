@@ -1,0 +1,14 @@
+{
+  "name": "dali-webapp",
+  "version": "1.0.0",
+  "description": "DALI MQTT Light Control Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mqtt": "^5.3.4",
+    "socket.io": "^4.7.2"
+  }
+}
