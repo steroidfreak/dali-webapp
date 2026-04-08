@@ -466,6 +466,8 @@ function createQuayCraneLightingMarketingMarkup() {
         src="/images/quay-crane-night-hero.jpg"
         alt="A quay crane lit up at night against a dark sky, container port in the background"
         class="mkt-image mkt-image--hero"
+        decoding="async"
+        fetchpriority="high"
       />
 
       <section class="mkt-section mkt-section--hero">
@@ -496,6 +498,8 @@ function createQuayCraneLightingMarketingMarkup() {
         src="/images/operator-stopped-crane.jpg"
         alt="A quay crane operator standing beside the crane controls at night, in an inadequately lit working zone"
         class="mkt-image mkt-image--story"
+        loading="lazy"
+        decoding="async"
       />
 
       <section class="mkt-section mkt-section--story">
@@ -540,6 +544,8 @@ function createQuayCraneLightingMarketingMarkup() {
         src="/images/spiderweb-dashboard-night.jpg"
         alt="The SpiderWeb DALI dashboard on a screen in an operations room at night, with the crane visible through the window"
         class="mkt-image mkt-image--story"
+        loading="lazy"
+        decoding="async"
       />
 
       <section class="mkt-section mkt-section--two-col">
@@ -611,6 +617,8 @@ function createQuayCraneLightingMarketingMarkup() {
         src="/images/crane-light-layout-diagram.jpg"
         alt="An annotated diagram of a quay crane showing the boom, trolley, and back reach sections with their respective DALI short address ranges"
         class="mkt-image mkt-image--story"
+        loading="lazy"
+        decoding="async"
       />
 
       <section class="mkt-section mkt-section--how">
@@ -644,6 +652,8 @@ function createQuayCraneLightingMarketingMarkup() {
         src="/images/telegram-fault-alert.jpg"
         alt="A Telegram message showing a SpiderWeb fault alert with the light address, section, fault type, and timestamp"
         class="mkt-image mkt-image--story"
+        loading="lazy"
+        decoding="async"
       />
 
       <section class="mkt-section mkt-section--cta">

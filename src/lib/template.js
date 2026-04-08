@@ -23,17 +23,21 @@ function renderLayout({ title, description, pathname, heroKicker, heroTitle, her
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5efe4">
+  <meta name="color-scheme" content="light">
   <title>${title}</title>
   <meta name="description" content="${description}">
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="preload" href="/assets/styles.css" as="style">
+  <link rel="preload" href="/images/spiderweb-logo-header.png" as="image">
   <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body data-pathname="${pathname}">
   <div class="site-shell">
     <header class="site-header">
       <a class="brand-mark" href="/">
-        <img class="brand-mark__logo" src="/images/spiderweb-logo-header.png" alt="SpiderWeb" width="111" height="28">
+        <img class="brand-mark__logo" src="/images/spiderweb-logo-header.png" alt="SpiderWeb" width="111" height="28" decoding="async" fetchpriority="high">
         <span class="brand-mark__name">SpiderWeb</span>
       </a>
       <nav class="site-nav">${nav}</nav>

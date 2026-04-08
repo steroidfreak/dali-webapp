@@ -2612,3 +2612,311 @@ body.is-fault .site-shell {
   .mkt-section--two-col { grid-template-columns: 1fr; }
   .mkt-headline { font-size: 1.9rem; }
 }
+
+/* ===========================================================================
+   UX Polish Layer — fluid transitions, scroll reveals, focus, perf
+   =========================================================================== */
+
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --t-fast: 140ms;
+  --t-base: 220ms;
+  --t-slow: 420ms;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Page entrance — body fades up on first paint, removed once loaded */
+body {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity var(--t-slow) var(--ease-out),
+              transform var(--t-slow) var(--ease-out);
+}
+body.is-loaded {
+  opacity: 1;
+  transform: none;
+}
+
+/* Soft fade between routes (when JS triggers it before navigation) */
+body.is-leaving {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 180ms var(--ease-in-out),
+              transform 180ms var(--ease-in-out);
+}
+
+/* Scroll-reveal — JS adds .is-visible when element enters viewport */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 600ms var(--ease-out),
+              transform 600ms var(--ease-out);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+/* Stagger children when parent gets a stagger class */
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 520ms var(--ease-out),
+              transform 520ms var(--ease-out);
+}
+.reveal-stagger.is-visible > * { opacity: 1; transform: none; }
+.reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 40ms; }
+.reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 90ms; }
+.reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 140ms; }
+.reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 190ms; }
+.reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 240ms; }
+.reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 290ms; }
+.reveal-stagger.is-visible > *:nth-child(7) { transition-delay: 340ms; }
+.reveal-stagger.is-visible > *:nth-child(8) { transition-delay: 390ms; }
+
+/* Smoother global transitions on common interactive elements */
+.site-nav__link {
+  transition: color var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
+}
+.site-nav__link:hover { transform: translateY(-1px); }
+.site-nav__link:active { transform: translateY(0); }
+
+.brand-mark { transition: transform var(--t-base) var(--ease-out); }
+.brand-mark:hover { transform: scale(1.02); }
+
+/* Cards: smooth hover-lift across all card flavours */
+.service-card,
+.content-card,
+.blog-card,
+.light-card,
+.summary-card,
+.zone-card,
+.mkt-stat,
+.mkt-col,
+.rtl-usecase,
+.rtl-store-card,
+.qc-overview-card,
+.qc-light-card,
+.zone-summary-card {
+  transition: transform var(--t-base) var(--ease-out),
+              box-shadow var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out);
+  will-change: transform;
+}
+
+.service-card:hover,
+.blog-card:hover,
+.mkt-stat:hover,
+.mkt-col:hover,
+.rtl-usecase:hover,
+.summary-card:hover,
+.zone-summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 28px 60px rgba(81, 51, 25, 0.16);
+  border-color: rgba(180, 76, 33, 0.32);
+}
+
+.content-card:hover {
+  box-shadow: 0 28px 60px rgba(81, 51, 25, 0.14);
+}
+
+/* Buttons — universal lift + press feedback */
+.primary-button,
+.mkt-btn,
+.scene-btn,
+.qc-btn,
+.fault-banner__dismiss,
+.light-card__actions button {
+  transition: background var(--t-fast) var(--ease-out),
+              color var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out),
+              box-shadow var(--t-base) var(--ease-out),
+              transform 90ms var(--ease-out);
+}
+.primary-button:hover,
+.mkt-btn:hover,
+.qc-btn:hover,
+.light-card__actions button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(180, 76, 33, 0.22);
+}
+.primary-button:active,
+.mkt-btn:active,
+.scene-btn:active,
+.qc-btn:active,
+.light-card__actions button:active,
+.fault-banner__dismiss:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
+}
+
+/* Inputs — gentle focus glow */
+.text-input,
+.input-area {
+  transition: border-color var(--t-fast) var(--ease-out),
+              box-shadow var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out);
+}
+.text-input:hover,
+.input-area:hover {
+  border-color: rgba(33, 28, 20, 0.22);
+}
+.text-input:focus,
+.input-area:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fffaf3;
+  box-shadow: 0 0 0 3px rgba(180, 76, 33, 0.16);
+}
+
+/* Universal accessible focus ring */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.site-nav__link:focus-visible,
+.primary-button:focus-visible,
+.mkt-btn:focus-visible,
+.qc-btn:focus-visible,
+.scene-btn:focus-visible {
+  outline-offset: 4px;
+}
+
+/* Image polish — fade in once loaded, remove jarring pop-in */
+img {
+  opacity: 0;
+  transition: opacity 480ms var(--ease-out),
+              transform 600ms var(--ease-out);
+}
+img.is-loaded,
+img[data-loaded="true"] {
+  opacity: 1;
+}
+.brand-mark__logo,
+.camera-card__stream {
+  /* Keep critical/live images visible immediately */
+  opacity: 1;
+}
+.mkt-image {
+  transform: scale(1.02);
+}
+.mkt-image.is-loaded {
+  transform: scale(1);
+}
+
+/* Tabs — smoother underline slide */
+.view-tab,
+.qc-tab,
+.rtl-store-tab {
+  transition: color var(--t-base) var(--ease-out),
+              background var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
+}
+.view-tab:hover,
+.qc-tab:hover,
+.rtl-store-tab:hover {
+  transform: translateY(-1px);
+}
+
+/* Smoother light card state changes */
+.light-card,
+.qc-light-card,
+.zone-card {
+  transition: transform var(--t-base) var(--ease-out),
+              box-shadow var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out),
+              opacity var(--t-base) var(--ease-out),
+              background var(--t-base) var(--ease-out);
+}
+.light-card__value,
+.qc-light-card__value,
+.zone-card__level {
+  transition: color var(--t-base) var(--ease-out);
+}
+
+/* Hero copy — enter animation */
+.hero__copy {
+  animation: heroIn 700ms var(--ease-out) both;
+}
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Connection pill — pulse when online */
+.connection-pill {
+  transition: background var(--t-base) var(--ease-out),
+              color var(--t-base) var(--ease-out);
+}
+
+/* Badge transitions */
+.badge,
+.qc-badge {
+  transition: background var(--t-base) var(--ease-out),
+              color var(--t-base) var(--ease-out);
+}
+
+/* Smoother fault banner entry */
+.fault-banner {
+  animation: bannerSlideDown 320ms var(--ease-out) both,
+             faultFlashBanner 0.8s ease-in-out 320ms infinite;
+}
+@keyframes bannerSlideDown {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Selection colour for personality */
+::selection {
+  background: rgba(180, 76, 33, 0.22);
+  color: var(--ink);
+}
+
+/* Custom scrollbar — subtle, theme-matched */
+@supports selector(::-webkit-scrollbar) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(33, 28, 20, 0.18);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(180, 76, 33, 0.4);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+  }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  body { opacity: 1; transform: none; }
+  .reveal,
+  .reveal-stagger > * { opacity: 1; transform: none; }
+  img { opacity: 1; }
+}

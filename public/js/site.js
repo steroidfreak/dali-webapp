@@ -18,7 +18,152 @@ function renderSimpleMarkdown(markdown) {
     .replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>');
 }
 
+/* ---------------------------------------------------------------------------
+   UX polish runtime — page entrance, scroll reveal, image fade, link prefetch
+   --------------------------------------------------------------------------- */
+const prefersReducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function markBodyLoaded() {
+  // Next frame so the initial styles are committed before the transition runs.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => document.body.classList.add('is-loaded'));
+  });
+}
+
+function setupImageFade() {
+  const imgs = document.querySelectorAll('img:not(.brand-mark__logo):not(.camera-card__stream)');
+  imgs.forEach((img) => {
+    if (img.complete && img.naturalWidth > 0) {
+      img.classList.add('is-loaded');
+      return;
+    }
+    img.addEventListener('load', () => img.classList.add('is-loaded'), { once: true });
+    img.addEventListener('error', () => img.classList.add('is-loaded'), { once: true });
+  });
+}
+
+function setupScrollReveal() {
+  if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+    document.querySelectorAll('.reveal, .reveal-stagger').forEach((el) => el.classList.add('is-visible'));
+    return;
+  }
+
+  // Auto-tag candidate elements that should fade in on scroll.
+  const autoSelectors = [
+    '.section-block',
+    '.content-grid',
+    '.blog-grid',
+    '.service-grid',
+    '.dali-grid',
+    '.summary-strip',
+    '.mkt-section',
+    '.rtl-section',
+    '.qc-section-cards',
+    '.zone-grid',
+    '.live-panel',
+  ];
+  document.querySelectorAll(autoSelectors.join(',')).forEach((el) => {
+    if (!el.classList.contains('reveal') && !el.classList.contains('reveal-stagger')) {
+      // Use stagger for grid-style containers, plain reveal otherwise.
+      const isGrid =
+        el.classList.contains('blog-grid') ||
+        el.classList.contains('service-grid') ||
+        el.classList.contains('dali-grid') ||
+        el.classList.contains('summary-strip') ||
+        el.classList.contains('qc-section-cards') ||
+        el.classList.contains('zone-grid');
+      el.classList.add(isGrid ? 'reveal-stagger' : 'reveal');
+    }
+  });
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
+  );
+
+  document.querySelectorAll('.reveal, .reveal-stagger').forEach((el) => observer.observe(el));
+}
+
+function setupLinkPrefetch() {
+  // Prefetch internal pages on hover/focus for snappier nav.
+  if (!('requestIdleCallback' in window)) return;
+  const prefetched = new Set();
+  const prefetch = (href) => {
+    if (!href || prefetched.has(href)) return;
+    prefetched.add(href);
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = href;
+    link.as = 'document';
+    document.head.appendChild(link);
+  };
+  document.querySelectorAll('a[href^="/"]').forEach((a) => {
+    const href = a.getAttribute('href');
+    if (!href || href.startsWith('//') || href.startsWith('/api') || href.startsWith('/cam') || href.startsWith('/socket.io')) return;
+    a.addEventListener('mouseenter', () => prefetch(href), { passive: true });
+    a.addEventListener('focus', () => prefetch(href), { passive: true });
+    a.addEventListener('touchstart', () => prefetch(href), { passive: true });
+  });
+}
+
+function setupPageLeaveTransition() {
+  if (prefersReducedMotion) return;
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    const href = a.getAttribute('href');
+    if (
+      !href ||
+      href.startsWith('#') ||
+      href.startsWith('mailto:') ||
+      href.startsWith('tel:') ||
+      a.target === '_blank' ||
+      a.hasAttribute('download') ||
+      e.metaKey || e.ctrlKey || e.shiftKey || e.altKey ||
+      e.button !== 0
+    ) {
+      return;
+    }
+    // Only handle same-origin navigations
+    let url;
+    try { url = new URL(a.href, location.href); } catch { return; }
+    if (url.origin !== location.origin) return;
+    if (url.pathname === location.pathname && url.search === location.search) return;
+
+    document.body.classList.add('is-leaving');
+  }, { capture: true });
+
+  // If the user comes back via bfcache, undo the leaving state.
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      document.body.classList.remove('is-leaving');
+      document.body.classList.add('is-loaded');
+    }
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', markBodyLoaded);
+} else {
+  markBodyLoaded();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  setupImageFade();
+  setupScrollReveal();
+  setupLinkPrefetch();
+  setupPageLeaveTransition();
+
   const docButton = document.querySelector('[data-doc-generate]');
   const docInput = document.querySelector('#doc-topic');
   const docOutput = document.querySelector('#doc-output');
