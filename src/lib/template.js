@@ -2,8 +2,10 @@ function renderLayout({ title, description, pathname, heroKicker, heroTitle, her
   const navItems = [
     { href: '/', label: 'Overview' },
     { href: '/services/dali-control', label: 'DALI Control' },
-    { href: '/services/document-generator', label: 'Document Generator' },
-    { href: '/services/youtube-transcription', label: 'YouTube Transcription' },
+    { href: '/services/retail-lighting', label: 'Retail Lighting' },
+    { href: '/services/quay-crane', label: 'Quay Crane' },
+    { href: '/services/documents', label: 'Doc Generator' },
+    { href: '/services/tools', label: 'Tools' },
     { href: '/blog', label: 'Blog' },
   ];
 
@@ -23,14 +25,16 @@ function renderLayout({ title, description, pathname, heroKicker, heroTitle, her
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
   <meta name="description" content="${description}">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body data-pathname="${pathname}">
   <div class="site-shell">
     <header class="site-header">
       <a class="brand-mark" href="/">
-        <span class="brand-mark__eyebrow">DALI</span>
-        <span class="brand-mark__name">Service Studio</span>
+        <img class="brand-mark__logo" src="/images/spiderweb-logo-header.png" alt="SpiderWeb" width="111" height="28">
+        <span class="brand-mark__name">SpiderWeb</span>
       </a>
       <nav class="site-nav">${nav}</nav>
     </header>
@@ -66,7 +70,7 @@ function renderServicePage({ pathname, service, demoMarkup, relatedPosts }) {
     : '<p class="empty-state">No blog posts yet.</p>';
 
   return renderLayout({
-    title: `${service.title} | DALI Service Studio`,
+    title: `${service.title} | SpiderWeb`,
     description: service.summary,
     pathname,
     heroKicker: service.kicker,

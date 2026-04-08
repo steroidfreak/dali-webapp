@@ -8,6 +8,7 @@ const { createDaliState } = require('./services/dali-state');
 const { createMqttBridge } = require('./services/mqtt-bridge');
 const { createApiRouter } = require('./routes/api');
 const { createSiteRouter } = require('./routes/site');
+const { createTelegramBot } = require('./services/telegram-bot');
 
 function startServer() {
   const app = express();
@@ -26,11 +27,14 @@ function startServer() {
   app.use('/api', createApiRouter({ daliState, mqttBridge }));
   app.use(createSiteRouter());
 
+  // Start Telegram bot (independent, own polling)
+  const telegramBot = createTelegramBot();
+
   server.listen(PORT, () => {
     console.log(`[server] Site running on http://localhost:${PORT}`);
   });
 
-  return { app, server, io };
+  return { app, server, io, telegramBot };
 }
 
 module.exports = { startServer };

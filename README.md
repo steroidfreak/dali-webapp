@@ -1,12 +1,8 @@
-# DALI Service Studio
+# SpiderWeb
 
-Express-based website scaffold with:
+My AI lab — real systems you can try.
 
-- a DALI Control service page backed by MQTT and Socket.IO
-- a Document Generator service page with a simple demo
-- a YouTube Transcription service page with a simple demo
-- markdown-driven service and blog content
-- a blog section ready for new posts
+Built on Express with live demos for DALI lighting control, content tools, and automation. Everything runs on a single DigitalOcean droplet.
 
 ## Run locally
 
@@ -19,19 +15,28 @@ The app starts on `PORT` or `3000`.
 
 ## Environment variables
 
-- `PORT`: HTTP port for the site
-- `MQTT_BROKER`: MQTT broker URL for the DALI bridge
-- `NUM_LIGHTS`: number of DALI lights shown in the demo
+| Variable | Description |
+|---|---|
+| `PORT` | HTTP port for the site |
+| `MQTT_BROKER` | MQTT broker URL for the DALI bridge |
+| `NUM_LIGHTS` | Number of DALI lights shown in the demo |
+| `TELEGRAM_BOT_TOKEN` | Bot token for fault alert notifications |
+| `TELEGRAM_CHAT_ID` | Chat ID to send Telegram alerts to |
+
+## Services
+
+- **DALI Lighting Control** — real-time MQTT/Socket.IO dashboard
+- **Content Tools** — document generator and YouTube transcription
 
 ## Content updates
 
 - Edit service page copy in `content/services/*.md`
 - Add new blog posts in `content/blog/*.md`
 
-## DigitalOcean deployment notes
+## DigitalOcean deployment
 
 1. Create a droplet with Node.js installed.
 2. Copy the project to the server.
 3. Run `npm install --production`.
-4. Set `PORT`, `MQTT_BROKER`, and `NUM_LIGHTS`.
+4. Set environment variables.
 5. Start with `npm start`, `pm2 start server.js`, or a `systemd` service.
