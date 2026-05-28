@@ -813,6 +813,12 @@ function createDocGeneratorMarkup() {
 function createQuayCraneMarkup() {
   return `
     <section class="section-block">
+      <div class="qc-broadcast-bar" role="group" aria-label="Broadcast to all lights">
+        <span class="qc-broadcast-bar__label">All lights</span>
+        <button class="qc-btn qc-btn--bc-on"  data-qc-action="bc-on">Broadcast ON</button>
+        <button class="qc-btn qc-btn--bc-off" data-qc-action="bc-off">Broadcast OFF</button>
+      </div>
+
       <div class="qc-section-tabs">
         <button class="qc-tab active" data-section="boom">
           <span class="qc-tab__label">Boom</span>
@@ -851,6 +857,8 @@ function createQuayCraneMarkup() {
         <div id="qc-grid" class="qc-grid"></div>
       </div>
     </section>
+
+    <div id="qc-toast-stack" class="qc-toast-stack" aria-live="polite" aria-atomic="true"></div>
   `;
 }
 

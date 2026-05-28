@@ -5,6 +5,20 @@
     backreach: { label: 'Back Reach',shortAddrs: Array.from({ length: 12 }, (_, i) => 30 + i) }, // SA 30–41
   };
 
+  // Siemens CM 1xDALI "Set level" command — Byte 1 (action) encoding.
+  // Not raw DALI opcodes; the gateway re-encodes these on the bus.
+  const DALI = {
+    OFF:       0,
+    FADE_UP:   1,   // continuous fade up (not used by UI buttons)
+    FADE_DOWN: 2,   // continuous fade down (not used by UI buttons)
+    STEP_UP:   3,
+    STEP_DOWN: 4,
+    ON:        5,   // RECALL MAX LEVEL
+    DAPC:    255,   // explicit level — Byte 2 is the level (0–254)
+  };
+  // Byte 0 (address): 0xFF (255) targets all gears (broadcast).
+  const BROADCAST_ADDR = 255;
+
   const state = { lights: {}, activeSection: null };
 
   // ── Helpers ───────────────────────────────────────────────────
@@ -30,6 +44,31 @@
 
   function getFaultCount(section) {
     return getSectionLights(section).filter((l) => l.lampFail || l.gearFail).length;
+  }
+
+  // ── MQTT command + toast ─────────────────────────────────────
+
+  // socket is assigned later in Init; sendCommand must therefore look it up
+  // lazily rather than capturing it at module-load time.
+  function sendCommand(addr, action, level, label) {
+    if (!window.__qcSocket) return;
+    window.__qcSocket.emit('setLevel', { addr, action, level });
+    if (label) console.debug(`[quay-crane] ${label} addr=${addr} action=${action} level=${level}`);
+  }
+
+  function showToast(message, kind) {
+    const stack = document.getElementById('qc-toast-stack');
+    if (!stack) return;
+    const el = document.createElement('div');
+    el.className = `qc-toast${kind ? ' qc-toast--' + kind : ''}`;
+    el.textContent = message;
+    stack.appendChild(el);
+    // Allow CSS transition to run, then remove after a short delay.
+    requestAnimationFrame(() => el.classList.add('is-visible'));
+    setTimeout(() => {
+      el.classList.remove('is-visible');
+      setTimeout(() => el.remove(), 220);
+    }, 1800);
   }
 
   // ── Rendering ────────────────────────────────────────────────
@@ -108,7 +147,9 @@
               ${light.online ? '' : 'disabled'}>
             <div class="qc-light-card__actions">
               <button class="qc-btn qc-btn--off" data-light-action="off" data-light-id="${light.addr}" ${light.online ? '' : 'disabled'}>Off</button>
+              <button class="qc-btn qc-btn--step" data-light-action="dn" data-light-id="${light.addr}" aria-label="Step down" ${light.online ? '' : 'disabled'}>−</button>
               <button class="qc-btn qc-btn--set" data-light-action="set" data-light-id="${light.addr}" ${light.online ? '' : 'disabled'}>Set</button>
+              <button class="qc-btn qc-btn--step" data-light-action="up" data-light-id="${light.addr}" aria-label="Step up" ${light.online ? '' : 'disabled'}>+</button>
               <button class="qc-btn qc-btn--max" data-light-action="max" data-light-id="${light.addr}" ${light.online ? '' : 'disabled'}>Max</button>
             </div>
           </div>
@@ -145,6 +186,22 @@
       return;
     }
 
+    // Broadcast buttons (data-qc-action="bc-on" | "bc-off")
+    const bc = e.target.closest('[data-qc-action]');
+    if (bc) {
+      const cmd = bc.dataset.qcAction;
+      if (cmd === 'bc-on') {
+        sendCommand(BROADCAST_ADDR, DALI.ON, 0, 'BROADCAST ON');
+        showToast('BROADCAST ON → all lights', 'ok');
+        return;
+      }
+      if (cmd === 'bc-off') {
+        sendCommand(BROADCAST_ADDR, DALI.OFF, 0, 'BROADCAST OFF');
+        showToast('BROADCAST OFF → all lights', 'ok');
+        return;
+      }
+    }
+
     // Slider drag — live preview
     const slider = e.target.closest('[data-light-slider]');
     if (slider) {
@@ -155,7 +212,7 @@
       return;
     }
 
-    // Set / Off / Max buttons
+    // Per-light buttons: Off / − (step down) / Set / + (step up) / Max
     const btn = e.target.closest('[data-light-action]');
     if (!btn) return;
 
@@ -164,18 +221,32 @@
     const level = slider2 ? percentToLevel(Number(slider2.value)) : 0;
     const action = btn.dataset.lightAction;
 
-    // Optimistic update
+    // Optimistic update — set/off/max move the display immediately;
+    // step up/down leave it for the next status message to update.
     const card = document.querySelector(`[data-addr="${addr}"]`);
     const display = document.querySelector(`[data-value-display="${addr}"]`);
-    if (card && display) {
+    if (card && display && (action === 'off' || action === 'set' || action === 'max')) {
       card.classList.remove('is-fault-flash');
       card.classList.add('is-setting');
       display.textContent = level === 0 ? '0%' : levelToPercent(level) + '%';
     }
 
-    if (action === 'off') socket.emit('setLevel', { addr, action: 0x00, level: 0 });
-    else if (action === 'max') socket.emit('setLevel', { addr, action: 0x05, level: 0 });
-    else socket.emit('setLevel', { addr, action: 0xff, level });
+    if (action === 'off') {
+      sendCommand(addr, DALI.OFF, 0, 'OFF');
+      showToast(`OFF → SA ${addr}`, 'ok');
+    } else if (action === 'max') {
+      sendCommand(addr, DALI.ON, 0, 'MAX');
+      showToast(`MAX → SA ${addr}`, 'ok');
+    } else if (action === 'up') {
+      sendCommand(addr, DALI.STEP_UP, 0, 'STEP UP');
+      showToast(`STEP UP → SA ${addr}`, 'ok');
+    } else if (action === 'dn') {
+      sendCommand(addr, DALI.STEP_DOWN, 0, 'STEP DOWN');
+      showToast(`STEP DOWN → SA ${addr}`, 'ok');
+    } else {
+      sendCommand(addr, DALI.DAPC, level, `SET ${level}`);
+      showToast(`SET ${levelToPercent(level)}% → SA ${addr}`, 'ok');
+    }
 
     const clearFlash = () => { if (card) card.classList.remove('is-setting'); };
     const handler = (updatedLight) => {
@@ -212,6 +283,7 @@
     .catch(() => renderOverview());
 
   const socket = io(window.location.origin, { transports: ['websocket'] });
+  window.__qcSocket = socket;
 
   socket.on('connect', () => {
     const pill = document.querySelector('[data-connection-pill]');
